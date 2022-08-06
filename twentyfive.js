@@ -3,20 +3,56 @@
 // I saw this problem here and couldn't help but try it on my own:
 // https://youtu.be/_-AfhLQfb6w
 
+console.time('INIT');
+
+const workers = new Array(navigator.hardwareConcurrency);
+for (let id = 0; id < workers.length; id++) {
+  workers[id] = new Worker('worker.js', {name: id});
+}
+
 Promise
     .all([
       fetch('/kokowordle/solutions.json').then(r => r.json()),
       fetch('/kokowordle/guesses.json').then(r => r.json()),
     ])
-    .then(([solutions, guesses]) => {
-      const start = performance.now();
-
+    .then(async ([solutions, guesses]) => {
       const words = [...solutions, ...guesses];
       const {ints, intToWord} = mapWordsToCanonicalInts(words);
-      findSolutions({ints, intToWord});
 
-      log('done!');
-      log('duration:', performance.now() - start, 'ms');
+      for (const worker of workers) {
+        worker.postMessage(ints);
+      }
+
+      await Promise.all(workers.map((worker, id) => {
+        return new Promise(res => {
+          worker.onmessage = (e) => {
+            console.log(`worker #${id}`, e.data);
+            res();
+          };
+        });
+      }));
+
+      console.timeEnd('INIT');
+
+      console.time('SOLVE');
+      let n = 0;
+
+      distributeRange({start: 0, end: ints.length, numWorkers: workers.length})
+          .forEach((range, id) => {
+            const worker = workers[id];
+            worker.onmessage = (e) => {
+              const solutionInts = e.data;
+              const solutionWords = solutionInts.map(int => intToWord.get(int));
+              log('solution:', solutionWords.join(','));
+              n++;
+              if (n === 10) {  // Because we know there are 10 solutions.
+                console.timeEnd('SOLVE');
+              }
+            };
+            for (let intIndex = range[0]; intIndex < range[1]; intIndex++) {
+              worker.postMessage(intIndex);
+            }
+          });
     });
 
 function mapWordsToCanonicalInts(words) {
@@ -53,30 +89,6 @@ function mapWordsToCanonicalInts(words) {
   return {ints, intToWord};
 }
 
-function findSolutions({ints, intToWord}) {
-  solve(ints, 0, new Array(5));
-
-  function solve(ints, index, solution) {
-    if (index === 4) {
-      for (let i = 0; i < ints.length; i++) {
-        solution[index] = ints[i];
-        const words = solution.map(int => intToWord.get(int));
-        log('solution:', words.join(', '));
-      }
-    } else {
-      for (let i = 0; i < ints.length; i++) {
-        solution[index] = ints[i];
-        const disjointInts = getDisjoint(ints.slice(i), ints[i]);
-        solve(disjointInts, index + 1, solution);
-      }
-    }
-  }
-
-  function getDisjoint(ints, chosenInt) {
-    return ints.filter(int => (int&chosenInt) === 0);
-  }
-}
-
 Array.prototype.distinct = function() {
   return Array.from(new Set(this));
 };
@@ -86,4 +98,31 @@ function log(...args) {
   const div = document.createElement('div');
   div.innerText = args.join(' ');
   document.body.append(div);
+}
+
+function distributeRange({start, end, numWorkers}) {
+  const numTasks = end - start;
+  if (numTasks <= numWorkers) {
+    // Assign one task per worker
+    const ranges = new Array(numTasks);
+    for (let i = 0; i < numTasks; i++) {
+      ranges[i] = [start + i, start + i + 1];
+    }
+    return ranges;
+  } else {
+    // Try to distribute tasks evenly. Give the extras to the low workers.
+    const ranges = new Array(numWorkers);
+    const tasksPerWorker = Math.floor(numTasks / numWorkers);
+    const remainder = numTasks % numWorkers;
+    let taskIndex = 0;
+    for (let i = 0; i < remainder; i++) {
+      ranges[i] = [taskIndex, taskIndex + tasksPerWorker + 1];
+      taskIndex += tasksPerWorker + 1;
+    }
+    for (let i = remainder; i < numWorkers; i++) {
+      ranges[i] = [taskIndex, taskIndex + tasksPerWorker];
+      taskIndex += tasksPerWorker;
+    }
+    return ranges;
+  }
 }
