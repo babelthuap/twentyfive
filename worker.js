@@ -1,28 +1,30 @@
 let ints;
 const solution = new Array(5);
 
-// INIT message
-onmessage = (e) => {
-  ints = e.data;
-  postMessage('INITIALIZED');
-  // SOLVE messages
-  onmessage = (e) => {
-    const intIndex = e.data;
-    findSolutionsStartingAt(intIndex);
-  };
+onmessage = ({data}) => {
+  switch (data.type) {
+    case 'INIT':
+      ints = data.ints;
+      postMessage('INITIALIZED');
+      break;
+    case 'SOLVE':
+      findSolutionsStartingAt(data.intIndex);
+      break;
+  }
 };
 
 function findSolutionsStartingAt(intIndex) {
   solution[0] = ints[intIndex];
-  const disjointInts = getDisjoint(ints.slice(intIndex), ints[intIndex]);
+  const disjointInts = getDisjoint(ints.slice(intIndex + 1), ints[intIndex]);
   findSolutions(disjointInts, 1);
+  postMessage({type: 'DONE'});
 }
 
 function findSolutions(intsSubset, solutionIndex) {
   if (solutionIndex === 4) {
     for (let i = 0; i < intsSubset.length; i++) {
       solution[solutionIndex] = intsSubset[i];
-      postMessage(solution);
+      postMessage({type: 'SOLUTION', solution});
     }
   } else {
     for (let i = 0; i < intsSubset.length; i++) {
