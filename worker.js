@@ -1,10 +1,21 @@
+'use strict';
+
 let ints;
-const solution = new Array(5);
+
+// Keep all the intermediate values in pre-allocated arrays so we don't have to
+// do any allocation during the findSolutions loop. This makes it almost 100%
+// faster at the cost of readability ¯\_(ツ)_/¯
+const disjointLists = new Array(4);
+const disjointListLengths = new Uint16Array(4);
+const solution = new Uint32Array(5);
 
 onmessage = ({data}) => {
   switch (data.type) {
     case 'INIT':
       ints = data.ints;
+      for (let i = 0; i < disjointLists.length; i++) {
+        disjointLists[i] = new Uint32Array(ints.length);
+      }
       postMessage('INITIALIZED');
       break;
     case 'SOLVE':
@@ -15,26 +26,37 @@ onmessage = ({data}) => {
 
 function findSolutionsStartingAt(intIndex) {
   solution[0] = ints[intIndex];
-  const disjointInts = getDisjoint(ints.slice(intIndex + 1), ints[intIndex]);
-  findSolutions(disjointInts, 1);
+  getDisjoint(ints, ints.length, 0, intIndex);
+  findSolutions(1);
   postMessage({type: 'DONE'});
 }
 
-function findSolutions(intsSubset, solutionIndex) {
+function findSolutions(solutionIndex) {
+  const prevDisjointList = disjointLists[solutionIndex - 1];
+  const prevDisjointListLength = disjointListLengths[solutionIndex - 1];
   if (solutionIndex === 4) {
-    for (let i = 0; i < intsSubset.length; i++) {
-      solution[solutionIndex] = intsSubset[i];
-      postMessage({type: 'SOLUTION', solution});
+    for (let i = 0; i < prevDisjointListLength; i++) {
+      solution[solutionIndex] = prevDisjointList[i];
+      postMessage({type: 'SOLUTION', solution: solution});
     }
-  } else {
-    for (let i = 0; i < intsSubset.length; i++) {
-      solution[solutionIndex] = intsSubset[i];
-      const disjointInts = getDisjoint(intsSubset.slice(i + 1), intsSubset[i]);
-      findSolutions(disjointInts, solutionIndex + 1);
-    }
+    return;
+  }
+
+  for (let i = 0; i < prevDisjointListLength; i++) {
+    solution[solutionIndex] = prevDisjointList[i];
+    getDisjoint(prevDisjointList, prevDisjointListLength, solutionIndex, i);
+    findSolutions(solutionIndex + 1);
   }
 }
 
-function getDisjoint(intsSubset, chosenInt) {
-  return intsSubset.filter(int => (int&chosenInt) === 0);
+function getDisjoint(source, sourceLength, destinationIndex, startIndex) {
+  let size = 0;
+  const chosenInt = source[startIndex];
+  const dest = disjointLists[destinationIndex];
+  for (let i = startIndex + 1; i < sourceLength; i++) {
+    if ((source[i] & chosenInt) === 0) {
+      dest[size++] = source[i];
+    }
+  }
+  disjointListLengths[destinationIndex] = size;
 }

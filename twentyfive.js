@@ -42,7 +42,7 @@ async function solve(words) {
         await delegateTask(worker);
       }
       workerDone();
-    })
+    });
   }
   function delegateTask(worker) {
     return new Promise(taskDone => {
@@ -52,7 +52,8 @@ async function solve(words) {
         switch (data.type) {
           case 'SOLUTION':
             const solutionInts = data.solution;
-            const solutionWords = solutionInts.map(int => intToWord.get(int));
+            const solutionWords =
+                Array.from(solutionInts, int => intToWord.get(int));
             log('solution:', solutionWords.join(', '));
             break;
           case 'DONE':
@@ -88,7 +89,8 @@ function mapWordsToCanonicalInts(words) {
   const mapCharsToInt = chars =>
       chars.split('').map(char => charToInt[char]).reduce((int, n) => int|n);
 
-  const ints = canonicalChars.map(mapCharsToInt).sort((a, b) => b - a);
+  const ints =
+      Uint32Array.from(canonicalChars.map(mapCharsToInt).sort((a, b) => b - a));
   const intToWord = new Map();
   for (const word of words) {
     const int = mapCharsToInt(word);
