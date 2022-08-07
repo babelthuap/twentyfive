@@ -24,6 +24,14 @@
       Can you find: five five-letter words with twenty-five unique letters?
     </a>
   </p>
-  <p>Word list: All valid Wordle guesses (12,974)</p>
+  <p>
+    Word list:
+    <select id="word-list">
+      <option value="wordle">valid Wordle guesses</option>
+      <option value="dwyl">github.com/dwyl/english-words</option>
+    </select>
+    <button id="find-solutions">Find solutions</button>
+  </p>
+  <div id="output"></div>
   <script src="twentyfive.js"></script>
 </body>

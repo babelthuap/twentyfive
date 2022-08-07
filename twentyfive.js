@@ -3,20 +3,41 @@
 // I saw this problem here and couldn't help but try it on my own:
 // https://youtu.be/_-AfhLQfb6w
 
+const output = document.getElementById('output');
+
 const workers = new Array(navigator.hardwareConcurrency);
 for (let id = 0; id < workers.length; id++) {
   workers[id] = new Worker('worker.js', {name: id});
 }
 
-Promise
-    .all([
-      fetch('/kokowordle/solutions.json').then(r => r.json()),
-      fetch('/kokowordle/guesses.json').then(r => r.json()),
-    ])
-    .then(([solutions, guesses]) => [...solutions, ...guesses])
-    .then(solve);
+let inProgress = false;
+document.getElementById('find-solutions').addEventListener('click', () => {
+  if (inProgress) {
+    return;
+  }
+  inProgress = true;
+  switch (document.getElementById('word-list').value) {
+    case 'wordle':
+      Promise
+          .all([
+            fetch('/kokowordle/solutions.json').then(r => r.json()),
+            fetch('/kokowordle/guesses.json').then(r => r.json()),
+          ])
+          .then(([solutions, guesses]) => [...solutions, ...guesses])
+          .then(solve);
+      break;
+    case 'dwyl':
+      fetch(
+          'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt')
+          .then(r => r.text())
+          .then(t => t.split(/\s+/).filter(w => w.length === 5))
+          .then(solve);
+      break;
+  };
+});
 
 async function solve(words) {
+  output.innerHTML = '';
   const start = performance.now();
 
   // Initialize workers
@@ -35,6 +56,7 @@ async function solve(words) {
 
   // Feed tasks to workers
   let intIndex = 0;
+  let count = 0;
   await Promise.all(workers.map(manageWorker));
   function manageWorker(worker) {
     return new Promise(async (workerDone) => {
@@ -55,6 +77,7 @@ async function solve(words) {
             const solutionWords =
                 Array.from(solutionInts, int => intToWord.get(int));
             log('solution:', solutionWords.join(', '));
+            count++;
             break;
           case 'DONE':
             taskDone();
@@ -64,7 +87,10 @@ async function solve(words) {
     });
   }
 
+  log('count:', count);
   log('duration:', Math.round(performance.now() - start), 'ms');
+
+  inProgress = false;
 }
 
 function mapWordsToCanonicalInts(words) {
@@ -109,5 +135,5 @@ function log(...args) {
   console.log(...args);
   const div = document.createElement('div');
   div.innerText = args.join(' ');
-  document.body.append(div);
+  output.append(div);
 }
