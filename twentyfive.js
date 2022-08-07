@@ -81,7 +81,7 @@ function mapWordsToCanonicalInts(words) {
   }, {});
 
   const charToInt = Object.entries(freqs)
-                        .sort((a, b) => a[1] - b[1])
+                        .sort((a, b) => b[1] - a[1])
                         .reduce((charToInt, [char], i) => {
                           charToInt[char] = 1 << i;
                           return charToInt;
@@ -89,8 +89,7 @@ function mapWordsToCanonicalInts(words) {
   const mapCharsToInt = chars =>
       chars.split('').map(char => charToInt[char]).reduce((int, n) => int|n);
 
-  const ints =
-      Uint32Array.from(canonicalChars.map(mapCharsToInt).sort((a, b) => b - a));
+  const ints = Uint32Array.from(canonicalChars, mapCharsToInt).sort();
   const intToWord = new Map();
   for (const word of words) {
     const int = mapCharsToInt(word);
