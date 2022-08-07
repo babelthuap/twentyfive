@@ -3,7 +3,11 @@
 // I saw this problem here and couldn't help but try it on my own:
 // https://youtu.be/_-AfhLQfb6w
 
+const fileUploadContainer = document.getElementById('file-upload-container');
+const fileUploadInput = document.getElementById('file-upload');
+const findSolutions = document.getElementById('find-solutions');
 const output = document.getElementById('output');
+const wordList = document.getElementById('word-list');
 
 const workers = new Array(navigator.hardwareConcurrency);
 for (let id = 0; id < workers.length; id++) {
@@ -11,12 +15,22 @@ for (let id = 0; id < workers.length; id++) {
 }
 
 let inProgress = false;
-document.getElementById('find-solutions').addEventListener('click', () => {
+
+wordList.addEventListener('change', function() {
+  inProgress = false;
+  const upload = this.value === 'upload';
+  fileUploadContainer.style.display = upload ? '' : 'none';
+  if (upload) {
+    fileUploadInput.click();
+  }
+});
+
+findSolutions.addEventListener('click', () => {
   if (inProgress) {
     return;
   }
   inProgress = true;
-  switch (document.getElementById('word-list').value) {
+  switch (wordList.value) {
     case 'wordle':
       Promise
           .all([
@@ -32,6 +46,31 @@ document.getElementById('find-solutions').addEventListener('click', () => {
           .then(r => r.text())
           .then(t => t.split(/\s+/).filter(w => w.length === 5))
           .then(solve);
+      break;
+    case 'upload':
+      let uploadPromise;
+      if (fileUploadInput.files.length > 0) {
+        uploadPromise = Promise.resolve(fileUploadInput.files[0]);
+      } else {
+        uploadPromise = new Promise((res, rej) => {
+          fileUploadInput.click();
+          fileUploadInput.addEventListener('change', () => {
+            if (inProgress && fileUploadInput.files.length > 0) {
+              res(fileUploadInput.files[0])
+            } else {
+              rej();
+            }
+          }, {once: true});
+        });
+      }
+      uploadPromise.then(file => file.text())
+          .then(
+              text => text.split(/[^A-Z]+/i)
+                          .filter(w => w.length === 5)
+                          .map(w => w.toUpperCase())
+                          .distinct())
+          .then(solve)
+          .catch(() => inProgress = false);
       break;
   };
 });
