@@ -16,7 +16,6 @@ onmessage = ({data}) => {
       for (let i = 0; i < disjointLists.length; i++) {
         disjointLists[i] = new Uint32Array(ints.length);
       }
-      postMessage('INITIALIZED');
       break;
     case 'SOLVE':
       findSolutionsStartingAt(data.intIndex);

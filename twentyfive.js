@@ -90,14 +90,6 @@ async function solve(words) {
   for (const worker of workers) {
     worker.postMessage({type: 'INIT', ints});
   }
-  await Promise.all(workers.map((worker, id) => {
-    return new Promise(res => {
-      worker.onmessage = ({data}) => {
-        console.log(`worker #${id}`, data);
-        res();
-      };
-    });
-  }));
 
   // Feed tasks to workers
   let intIndex = 0;
@@ -118,11 +110,13 @@ async function solve(words) {
       worker.onmessage = ({data}) => {
         switch (data.type) {
           case 'SOLUTION':
-            const solutionInts = data.solution;
-            const solutionWords =
-                Array.from(solutionInts, int => intToWord.get(int));
-            log('solution:', solutionWords.join(', '));
             count++;
+            const solutionInts = data.solution;
+            requestAnimationFrame(() => {
+              const solutionWords =
+                  Array.from(solutionInts, int => intToWord.get(int));
+              log('solution:', solutionWords.join(', '));
+            });
             break;
           case 'DONE':
             taskDone();
@@ -134,8 +128,6 @@ async function solve(words) {
 
   log('count:', count);
   log('duration:', Math.round(performance.now() - start), 'ms');
-
-  inProgress = false;
 }
 
 function mapWordsToCanonicalInts(words) {
