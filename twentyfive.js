@@ -23,10 +23,16 @@ wordList.addEventListener('change', function() {
 });
 
 let inProgress = false;
-function initSolve() {
+function beforeSolve() {
   inProgress = true;
+  findSolutions.setAttribute('disabled', true);
   output.innerHTML = '';
   log('calculating...');
+}
+
+function afterSolve() {
+  inProgress = false;
+  findSolutions.removeAttribute('disabled');
 }
 
 findSolutions.addEventListener('click', () => {
@@ -35,7 +41,7 @@ findSolutions.addEventListener('click', () => {
   }
   switch (wordList.value) {
     case 'wordle':
-      initSolve();
+      beforeSolve();
       Promise
           .all([
             fetch('/kokowordle/solutions.json').then(r => r.json()),
@@ -43,16 +49,16 @@ findSolutions.addEventListener('click', () => {
           ])
           .then(([solutions, guesses]) => [...solutions, ...guesses])
           .then(solve)
-          .finally(() => inProgress = false);
+          .finally(afterSolve);
       break;
     case 'dwyl':
-      initSolve();
+      beforeSolve();
       fetch(
           'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt')
           .then(r => r.text())
           .then(t => t.split(/\s+/).filter(w => w.length === 5))
           .then(solve)
-          .finally(() => inProgress = false);
+          .finally(afterSolve);
       break;
     case 'upload':
       if (fileUploadInput.files.length === 0) {
@@ -71,7 +77,7 @@ fileUploadInput.addEventListener('change', () => {
 });
 
 function solveUploadedFile(file) {
-  initSolve();
+  beforeSolve();
   file.text()
       .then(
           text => text.split(/[^A-Z]+/i)
@@ -79,7 +85,7 @@ function solveUploadedFile(file) {
                       .map(w => w.toUpperCase())
                       .distinct())
       .then(solve)
-      .finally(() => inProgress = false);
+      .finally(afterSolve);
 }
 
 async function solve(words) {
