@@ -14,10 +14,7 @@ for (let id = 0; id < workers.length; id++) {
   workers[id] = new Worker('worker.js', {name: id});
 }
 
-let inProgress = false;
-
 wordList.addEventListener('change', function() {
-  inProgress = false;
   const upload = this.value === 'upload';
   fileUploadContainer.style.display = upload ? '' : 'none';
   if (upload) {
@@ -25,58 +22,67 @@ wordList.addEventListener('change', function() {
   }
 });
 
+let inProgress = false;
+function initSolve() {
+  inProgress = true;
+  output.innerHTML = '';
+  log('calculating...');
+}
+
 findSolutions.addEventListener('click', () => {
   if (inProgress) {
     return;
   }
-  inProgress = true;
   switch (wordList.value) {
     case 'wordle':
+      initSolve();
       Promise
           .all([
             fetch('/kokowordle/solutions.json').then(r => r.json()),
             fetch('/kokowordle/guesses.json').then(r => r.json()),
           ])
           .then(([solutions, guesses]) => [...solutions, ...guesses])
-          .then(solve);
+          .then(solve)
+          .finally(() => inProgress = false);
       break;
     case 'dwyl':
+      initSolve();
       fetch(
           'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt')
           .then(r => r.text())
           .then(t => t.split(/\s+/).filter(w => w.length === 5))
-          .then(solve);
+          .then(solve)
+          .finally(() => inProgress = false);
       break;
     case 'upload':
-      let uploadPromise;
-      if (fileUploadInput.files.length > 0) {
-        uploadPromise = Promise.resolve(fileUploadInput.files[0]);
+      if (fileUploadInput.files.length === 0) {
+        fileUploadInput.click();
       } else {
-        uploadPromise = new Promise((res, rej) => {
-          fileUploadInput.click();
-          fileUploadInput.addEventListener('change', () => {
-            if (inProgress && fileUploadInput.files.length > 0) {
-              res(fileUploadInput.files[0])
-            } else {
-              rej();
-            }
-          }, {once: true});
-        });
+        solveUploadedFile(fileUploadInput.files[0]);
       }
-      uploadPromise.then(file => file.text())
-          .then(
-              text => text.split(/[^A-Z]+/i)
-                          .filter(w => w.length === 5)
-                          .map(w => w.toUpperCase())
-                          .distinct())
-          .then(solve)
-          .catch(() => inProgress = false);
       break;
   };
 });
 
+fileUploadInput.addEventListener('change', () => {
+  if (!inProgress && fileUploadInput.files.length > 0) {
+    solveUploadedFile(fileUploadInput.files[0]);
+  }
+});
+
+function solveUploadedFile(file) {
+  initSolve();
+  file.text()
+      .then(
+          text => text.split(/[^A-Z]+/i)
+                      .filter(w => w.length === 5)
+                      .map(w => w.toUpperCase())
+                      .distinct())
+      .then(solve)
+      .finally(() => inProgress = false);
+}
+
 async function solve(words) {
-  output.innerHTML = '';
   const start = performance.now();
 
   // Initialize workers
