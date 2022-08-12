@@ -15,29 +15,77 @@
     a {
       color: white;
     }
+
+    .container {
+      max-width: 600px;
+      min-height: calc(100vh / 2);
+      margin: auto;
+      padding: 16px;
+      padding-top: 1px;
+      border-radius: 8px;
+      background-color: #222020;
+    }
+
+    #output {
+      background-color: black;
+      border-radius: 8px;
+      border: 1px solid grey;
+      margin-top: 16px;
+      padding: 8px;
+    }
+
+    #output div:nth-of-type(2) {
+      margin-top: 1em;
+    }
+
+    @media (max-width: 650px) {
+      body {
+        margin: 0;
+      }
+
+      .container {
+        margin: 0;
+        border-radius: 0;
+      }
+    }
   </style>
 </head>
 
 <body>
-  <p>
-    <a href="https://youtu.be/_-AfhLQfb6w" target="_blank" rel="noopener noreferrer">
-      Can you find: five five-letter words with twenty-five unique letters?
-    </a>
-  </p>
-  <p>
-    Word list:
-    <select id="word-list">
-      <option value="wordle">Valid Wordle Guesses</option>
-      <option value="dwyl">Moby Word Lists (which Matt Parker used)</option>
-      <option value="upload">Upload...</option>
-    </select>
-  </p>
-  <p id="file-upload-container" style="display: none;">
-    <input type="file" id="file-upload" accept="text/*">
-  </p>
-  <p>
-    <button id="find-solutions">Find solutions</button>
-  </p>
-  <div id="output"></div>
+  <div class="container">
+    <h2>Can you find: five five-letter words with twenty-five unique letters?</h2>
+    <p>
+      Inspired by <a href="https://youtu.be/_-AfhLQfb6w" target="_blank" rel="noopener noreferrer">
+        this Matt Parker video</a>. This solution uses 100% vanilla JavaScript (i.e., no libraries) and runs entirely in
+      your browser. I use three main "tricks" to make it faster:
+    </p>
+    <ul>
+      <li>represent each word as a 32-bit int and use bitwise AND to determine if two words have letters in common</li>
+      <li>only consider words that don't have letters in common with the words already chosen</li>
+      <li>use web workers for parallelism</li>
+    </ul>
+    <p>
+      Source code: <a href="https://github.com/babelthuap/twentyfive" target="_blank"
+        rel="noopener noreferrer">https://github.com/babelthuap/twentyfive</a>
+    </p>
+    <hr>
+    <p>
+      Word list:
+      <select id="word-list">
+        <option value="wordle">Valid Wordle Guesses</option>
+        <option value="dwyl">Moby Word Lists (which Matt Parker used)</option>
+        <option value="upload">Upload...</option>
+      </select>
+    </p>
+    <p id="file-upload-container" style="display: none;">
+      <input type="file" id="file-upload" accept="text/*">
+    </p>
+    <p>
+      <button id="find-solutions">Find solutions</button>
+    </p>
+    <div id="output">
+      calculating...
+    </div>
+  </div>
   <script src="twentyfive.js"></script>
 </body>

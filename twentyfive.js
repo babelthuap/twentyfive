@@ -133,6 +133,7 @@ async function solve(words) {
   }
 
   requestAnimationFrame(() => {
+    log();
     log('count:', count);
     log('duration:', Math.round(performance.now() - start), 'ms');
   });
@@ -189,6 +190,12 @@ Array.prototype.distinct = function() {
 function log(...args) {
   console.log(...args);
   const div = document.createElement('div');
-  div.innerText = args.join(' ');
+  if (args.length === 0) {
+    div.style.height = '1em';
+  } else {
+    div.innerText = args.join(' ');
+  }
   output.append(div);
 }
+
+findSolutions.click();
