@@ -33,10 +33,11 @@ function findSolutionsStartingAt(intIndex) {
 function findSolutions(solutionIndex) {
   const prevDisjointList = disjointLists[solutionIndex - 1];
   const prevDisjointListLength = disjointListLengths[solutionIndex - 1];
+
   if (solutionIndex === 4) {
     for (let i = 0; i < prevDisjointListLength; i++) {
       solution[solutionIndex] = prevDisjointList[i];
-      postMessage({type: 'SOLUTION', solution: solution});
+      postMessage({type: 'SOLUTION', solution});
     }
     return;
   }

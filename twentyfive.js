@@ -9,7 +9,7 @@ const findSolutions = document.getElementById('find-solutions');
 const output = document.getElementById('output');
 const wordList = document.getElementById('word-list');
 
-const workers = new Array(navigator.hardwareConcurrency);
+const workers = new Array(navigator.hardwareConcurrency || 4);
 for (let id = 0; id < workers.length; id++) {
   workers[id] = new Worker('worker.js', {name: id});
 }
@@ -132,8 +132,10 @@ async function solve(words) {
     });
   }
 
-  log('count:', count);
-  log('duration:', Math.round(performance.now() - start), 'ms');
+  requestAnimationFrame(() => {
+    log('count:', count);
+    log('duration:', Math.round(performance.now() - start), 'ms');
+  });
 }
 
 function mapWordsToCanonicalInts(words) {
@@ -156,7 +158,7 @@ function mapWordsToCanonicalInts(words) {
                           return charToInt;
                         }, {});
   const mapCharsToInt = chars =>
-      chars.split('').map(char => charToInt[char]).reduce((int, n) => int|n);
+      Array.from(chars, char => charToInt[char]).reduce((int, n) => n | int);
 
   const ints = Uint32Array.from(canonicalChars, mapCharsToInt).sort();
   const intToWord = new Map();
@@ -171,7 +173,17 @@ function mapWordsToCanonicalInts(words) {
 }
 
 Array.prototype.distinct = function() {
-  return Array.from(new Set(this));
+  let numDistinct = 0;
+  const set = new Set();
+  for (let i = 0; i < this.length; i++) {
+    const el = this[i];
+    if (!set.has(el)) {
+      set.add(el);
+      this[numDistinct++] = el;
+    }
+  }
+  this.length = numDistinct;
+  return this;
 };
 
 function log(...args) {
