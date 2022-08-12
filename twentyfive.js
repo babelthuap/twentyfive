@@ -9,6 +9,7 @@ const findSolutions = document.getElementById('find-solutions');
 const output = document.getElementById('output');
 const wordList = document.getElementById('word-list');
 
+log('concurrency:', navigator.hardwareConcurrency);
 const workers = new Array(navigator.hardwareConcurrency || 4);
 for (let id = 0; id < workers.length; id++) {
   workers[id] = new Worker('worker.js', {name: id});
@@ -197,5 +198,3 @@ function log(...args) {
   }
   output.append(div);
 }
-
-findSolutions.click();
