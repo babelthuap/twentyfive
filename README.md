@@ -13,3 +13,7 @@ the browser. I use three main "tricks" to make it faster:
 This repo is essentially an over-engineered version of
 [this gist](https://gist.github.com/babelthuap/abf7aa8090fdaa07a3a35b2e52c3a6f5),
 which was my initial quick-and-dirty solution.
+
+# Answer
+
+Yes.
